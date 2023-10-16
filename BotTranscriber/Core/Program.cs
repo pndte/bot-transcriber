@@ -11,7 +11,7 @@ using File = System.IO.File;
 
 List<string> openedVoices = new List<string>();
 string[] commands = new[] { "/get_text@ok_transcriber_bot", "/get_text" };
-Model smallModel = new Model("C:\\Users\\Albert\\Desktop\\vosk-model-small-ru-0.22");
+Model smallModel = new Model("vosk-model-small-ru-0.22");
 // Model bigModel = new Model("C:\\Users\\Albert\\Desktop\\vosk-model-ru-0.42");
 VoskRecognizer rec = new VoskRecognizer(smallModel, 48000.0f);
 var token = File.ReadAllText("bot.config");
