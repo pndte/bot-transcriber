@@ -1,4 +1,5 @@
-﻿using Vosk;
+﻿using Newtonsoft.Json.Linq;
+using Vosk;
 
 namespace BotTranscriber.Voice;
 
@@ -11,22 +12,22 @@ public class VoiceMessage
         _path = path;
     }
     
-    string Text(VoskRecognizer recognizer)
+    public string Text(VoskRecognizer rec)
     {
-        //var vosk = new VoskRecognizer(new Model("C:\\Users\\Albert\\Desktop\\vosk-model-small-ru-0.22"), 48000);
-        //vosk.SetMaxAlternatives(0);
-        //vosk.SetWords(true);
-        using (Stream source = File.OpenRead(_path))
-        {
-            byte[] buffer = new byte[16384];
+        rec.SetMaxAlternatives(0);
+        rec.SetWords(true);
+        using(Stream source = File.OpenRead(_path)) {
+            byte[] buffer = new byte[16000];
             int bytesRead;
-            while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+            while((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
             {
-                Console.WriteLine(recognizer.AcceptWaveform(buffer, bytesRead) ? recognizer.Result() : recognizer.PartialResult());
+                rec.AcceptWaveform(buffer, bytesRead);
             }
         }
 
-        Console.WriteLine($"Результат: {recognizer.FinalResult()}");
-        return recognizer.FinalResult();
+        JObject text = JObject.Parse(rec.FinalResult());
+        var result = text.Last.ToString();
+
+        return result.Substring(8);
     }
 }
