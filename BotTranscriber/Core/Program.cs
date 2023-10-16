@@ -9,11 +9,14 @@ using Telegram.Bot.Types;
 using Vosk;
 using File = System.IO.File;
 
+List<string> openedVoices = new List<string>();
 string[] commands = new[] { "/get_text@ok_transcriber_bot", "/get_text" };
 Model smallModel = new Model("C:\\Users\\Albert\\Desktop\\vosk-model-small-ru-0.22");
 // Model bigModel = new Model("C:\\Users\\Albert\\Desktop\\vosk-model-ru-0.42");
 VoskRecognizer rec = new VoskRecognizer(smallModel, 48000.0f);
-var botClient = new TelegramBotClient("6520548360:AAGSLK5gIGfFgiuNAxauilOSz3SQCkgHgeM"); //TODO: заменить
+var token = File.ReadAllText("bot.config");
+Console.WriteLine("\n" + token);
+var botClient = new TelegramBotClient(token); //TODO: заменить
 botClient.StartReceiving(UpdateHandler, ErrorHandler);
 Console.WriteLine("Bot started!");
 Console.ReadLine();
@@ -61,13 +64,15 @@ async Task TranscribeVideo(Message videoNoteMessage)
     var telegramVideo = await botClient.GetFileAsync(videoNoteMessage.VideoNote.FileId);
     var fileName = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + telegramVideo.FileId;
     var mp4Path = fileName + ".mp4";
+    var wavPath = fileName + ".wav";
+    if (openedVoices.Contains(wavPath)) return;
+    openedVoices.Add(wavPath);
 
     await using (var saveVideoNote = new FileStream(mp4Path, FileMode.Create))
     {
         await botClient.DownloadFileAsync(telegramVideo.FilePath, saveVideoNote);
     }
     
-    var wavPath = fileName + ".wav";
     await using(var reader = new MediaFoundationReader(mp4Path))
     {
         WaveFileWriter.CreateWaveFile(wavPath, reader);
@@ -84,7 +89,8 @@ async Task TranscribeVideo(Message videoNoteMessage)
     {
         Console.WriteLine(e.Message);
     }
-    
+
+    openedVoices.Remove(wavPath);
     File.Delete(mp4Path);
     File.Delete(wavPath);
 }
@@ -94,6 +100,9 @@ async Task TranscribeAudio(Message voiceMessage)
     var telegramVoice = await botClient.GetFileAsync(voiceMessage.Voice.FileId);
     var fileName = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + telegramVoice.FileId;
     var oggPath = fileName + ".ogg";
+    var wavPath = fileName + ".wav";
+    if (openedVoices.Contains(wavPath)) return;
+    openedVoices.Add(wavPath);
 
     await using (var saveVoiceStream = new FileStream(oggPath, FileMode.Create))
     {
@@ -101,7 +110,6 @@ async Task TranscribeAudio(Message voiceMessage)
     }
 
     var wavBytes = ConvertOggToWav(File.ReadAllBytes(oggPath));
-    var wavPath = fileName + ".wav";
     File.WriteAllBytes(wavPath, wavBytes);
 
     var voice = new VoiceMessage(wavPath);
@@ -115,6 +123,7 @@ async Task TranscribeAudio(Message voiceMessage)
         Console.WriteLine(e.Message);
     }
 
+    openedVoices.Remove(wavPath);
     File.Delete(oggPath);
     File.Delete(wavPath);
 
